@@ -1,0 +1,71 @@
+[
+  {
+    "comment": "test basic_vpc without nat gateways",
+    "id": "basic_vpc",
+    "template": "cloudformation/basic_vpc.template",
+    "parameters": [
+      {
+        "ParameterKey": "Project",
+        "ParameterValue": "basic_vpc",
+        "UsePreviousValue": false
+      },
+      {
+        "ParameterKey": "UseNATGW",
+        "ParameterValue": "false",
+        "UsePreviousValue": false
+      }
+    ],
+    "tests": [
+      {
+        "Target": "PrivateNetAZ1.CidrBlock",
+        "Test": "10.0.3.0/24",
+        "Op": "eq"
+      },
+      {
+        "Target": "PrivateNetAZ2.CidrBlock",
+        "Test": "10.0.4.0/24",
+        "Op": "eq"
+      },
+      {
+        "Target": "PublicNetAZ1.CidrBlock",
+        "Test": "10.0.1.0/24",
+        "Op": "eq"
+      },
+      {
+        "Target": "PublicNetAZ2.CidrBlock",
+        "Test": "10.0.2.0/24",
+        "Op": "eq"
+      },
+      {
+        "Target": "VPCBase.CidrBlock",
+        "Test": "10.0.0.0/16",
+        "Op": "eq"
+      },
+      {
+        "Target": "VPCBase.EnableDnsHostnames",
+        "Test": "True",
+        "Op": "eq"
+      },
+      {
+        "Target": "VPCBase.EnableDnsSupport",
+        "Test": "True",
+        "Op": "eq"
+      },
+      {
+        "Target": "RoutePublicDefault.DestinationCidrBlock",
+        "Test": "8.8.8.8/32",
+        "Op": "ne"
+      },
+      {
+        "Target": "VPCBase.Tags",
+        "Test": "FAIL ME",
+        "Op": "eq"
+      },
+      {
+        "Target": "NatGW1.SubnetId",
+        "Test": "FAIL ME",
+        "Op": "eq"
+      }
+    ]
+  }
+]

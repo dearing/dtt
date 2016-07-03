@@ -1,0 +1,573 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Basic VPC + NAT-GW",
+	"Metadata": {
+		"AWS::CloudFormation::Interface": {
+			"ParameterGroups": [],
+			"ParameterLabels": {
+				"Project": {
+					"default": "PROJECT"
+				},
+				"UseNATGW": {
+					"default": "NAT-GW"
+				}
+			}
+		}
+	},
+	"Parameters": {
+		"Project": {
+			"Description": "this project's name",
+			"Type": "String",
+			"Default": "SANDBOX"
+		},
+		"UseNATGW": {
+			"Description": "create NAT gateways?",
+			"Type": "String",
+			"Default": "true"
+		}
+	},
+	"Conditions": {
+		"CreateNATGW": {
+			"Fn::Equals": [
+				{
+					"Ref": "UseNATGW"
+				},
+				"true"
+			]
+		}
+	},
+	"Mappings": {
+		"NetworkMap": {
+			"VPC": {
+				"CIDR": "10.0.0.0/16"
+			},
+			"PublicAZ1": {
+				"CIDR": "10.0.1.0/24"
+			},
+			"PublicAZ2": {
+				"CIDR": "10.0.2.0/24"
+			},
+			"PrivateAZ1": {
+				"CIDR": "10.0.3.0/24"
+			},
+			"PrivateAZ2": {
+				"CIDR": "10.0.4.0/24"
+			}
+		}
+	},
+	"Resources": {
+		"IGWBase": {
+			"Type": "AWS::EC2::InternetGateway",
+			"Properties": {
+				"Tags": [
+					{
+						"Key": "ServiceProvider",
+						"Value": "Rackspace"
+					},
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "Project"
+									},
+									"IGW"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"PrivateNetAZ1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": {
+					"Fn::Select": [
+						"1",
+						{
+							"Fn::GetAZs": {
+								"Ref": "AWS::Region"
+							}
+						}
+					]
+				},
+				"CidrBlock": {
+					"Fn::FindInMap": [
+						"NetworkMap",
+						"PrivateAZ1",
+						"CIDR"
+					]
+				},
+				"MapPublicIpOnLaunch": "False",
+				"Tags": [
+					{
+						"Key": "ServiceProvider",
+						"Value": "Rackspace"
+					},
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "Project"
+									},
+									"PrivateAZ1"
+								]
+							]
+						}
+					},
+					{
+						"Key": "network",
+						"Value": "private"
+					}
+				],
+				"VpcId": {
+					"Ref": "VPCBase"
+				}
+			}
+		},
+		"PrivateNetAZ2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": {
+					"Fn::Select": [
+						"2",
+						{
+							"Fn::GetAZs": {
+								"Ref": "AWS::Region"
+							}
+						}
+					]
+				},
+				"CidrBlock": {
+					"Fn::FindInMap": [
+						"NetworkMap",
+						"PrivateAZ2",
+						"CIDR"
+					]
+				},
+				"MapPublicIpOnLaunch": "False",
+				"Tags": [
+					{
+						"Key": "ServiceProvider",
+						"Value": "Rackspace"
+					},
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "Project"
+									},
+									"PrivateAZ2"
+								]
+							]
+						}
+					},
+					{
+						"Key": "network",
+						"Value": "private"
+					}
+				],
+				"VpcId": {
+					"Ref": "VPCBase"
+				}
+			}
+		},
+		"PublicNetAZ1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": {
+					"Fn::Select": [
+						"1",
+						{
+							"Fn::GetAZs": {
+								"Ref": "AWS::Region"
+							}
+						}
+					]
+				},
+				"CidrBlock": {
+					"Fn::FindInMap": [
+						"NetworkMap",
+						"PublicAZ1",
+						"CIDR"
+					]
+				},
+				"MapPublicIpOnLaunch": "True",
+				"Tags": [
+					{
+						"Key": "ServiceProvider",
+						"Value": "Rackspace"
+					},
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "Project"
+									},
+									"PublicAZ1"
+								]
+							]
+						}
+					}
+				],
+				"VpcId": {
+					"Ref": "VPCBase"
+				}
+			}
+		},
+		"PublicNetAZ2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": {
+					"Fn::Select": [
+						"2",
+						{
+							"Fn::GetAZs": {
+								"Ref": "AWS::Region"
+							}
+						}
+					]
+				},
+				"CidrBlock": {
+					"Fn::FindInMap": [
+						"NetworkMap",
+						"PublicAZ2",
+						"CIDR"
+					]
+				},
+				"MapPublicIpOnLaunch": "True",
+				"Tags": [
+					{
+						"Key": "ServiceProvider",
+						"Value": "Rackspace"
+					},
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "Project"
+									},
+									"PublicAZ2"
+								]
+							]
+						}
+					}
+				],
+				"VpcId": {
+					"Ref": "VPCBase"
+				}
+			}
+		},
+		"RouteAssociationPrivateAZ1Default": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PrivateNetAZ1"
+				},
+				"RouteTableId": {
+					"Ref": "RouteTablePrivateAZ1"
+				}
+			}
+		},
+		"RouteAssociationPrivateAZ2Default": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PrivateNetAZ2"
+				},
+				"RouteTableId": {
+					"Ref": "RouteTablePrivateAZ2"
+				}
+			}
+		},
+		"RouteAssociationPublicAZ1Default": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PublicNetAZ1"
+				},
+				"RouteTableId": {
+					"Ref": "RouteTablePublic"
+				}
+			}
+		},
+		"RouteAssociationPublicAZ2Default": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PublicNetAZ2"
+				},
+				"RouteTableId": {
+					"Ref": "RouteTablePublic"
+				}
+			}
+		},
+		"RoutePublicDefault": {
+			"Type": "AWS::EC2::Route",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "RouteTablePublic"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": {
+					"Ref": "IGWBase"
+				}
+			}
+		},
+		"RouteTablePrivateAZ1": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCBase"
+				},
+				"Tags": [
+					{
+						"Key": "ServiceProvider",
+						"Value": "Rackspace"
+					},
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "Project"
+									},
+									"PrivateAZ1RT"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"RouteTablePrivateAZ2": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCBase"
+				},
+				"Tags": [
+					{
+						"Key": "ServiceProvider",
+						"Value": "Rackspace"
+					},
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "Project"
+									},
+									"PrivateAZ2RT"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"RouteTablePublic": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCBase"
+				},
+				"Tags": [
+					{
+						"Key": "ServiceProvider",
+						"Value": "Rackspace"
+					},
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "Project"
+									},
+									"PublicRT"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"VGAIGWBase": {
+			"Type": "AWS::EC2::VPCGatewayAttachment",
+			"Properties": {
+				"InternetGatewayId": {
+					"Ref": "IGWBase"
+				},
+				"VpcId": {
+					"Ref": "VPCBase"
+				}
+			}
+		},
+		"VPCBase": {
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+				"CidrBlock": {
+					"Fn::FindInMap": [
+						"NetworkMap",
+						"VPC",
+						"CIDR"
+					]
+				},
+				"EnableDnsSupport": "True",
+				"EnableDnsHostnames": "True",
+				"InstanceTenancy": "default",
+				"Tags": [
+					{
+						"Key": "ServiceProvider",
+						"Value": "Rackspace"
+					},
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "Project"
+									},
+									"VPC"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"EIP1": {
+			"Type": "AWS::EC2::EIP",
+			"Condition": "CreateNATGW",
+			"Properties": {
+				"Domain": "vpc"
+			}
+		},
+		"NatGW1": {
+			"Type": "AWS::EC2::NatGateway",
+			"DependsOn": "VGAIGWBase",
+			"Condition": "CreateNATGW",
+			"Properties": {
+				"AllocationId": {
+					"Fn::GetAtt": [
+						"EIP1",
+						"AllocationId"
+					]
+				},
+				"SubnetId": {
+					"Ref": "PublicNetAZ1"
+				}
+			}
+		},
+		"Route1": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateNATGW",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "RouteTablePrivateAZ1"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"NatGatewayId": {
+					"Ref": "NatGW1"
+				}
+			}
+		},
+		"EIP2": {
+			"Type": "AWS::EC2::EIP",
+			"Condition": "CreateNATGW",
+			"Properties": {
+				"Domain": "vpc"
+			}
+		},
+		"NatGW2": {
+			"Type": "AWS::EC2::NatGateway",
+			"Condition": "CreateNATGW",
+			"DependsOn": "VGAIGWBase",
+			"Properties": {
+				"AllocationId": {
+					"Fn::GetAtt": [
+						"EIP2",
+						"AllocationId"
+					]
+				},
+				"SubnetId": {
+					"Ref": "PublicNetAZ2"
+				}
+			}
+		},
+		"Route2": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateNATGW",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "RouteTablePrivateAZ2"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"NatGatewayId": {
+					"Ref": "NatGW2"
+				}
+			}
+		},
+		"SecurityGroup": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "-",
+				"SecurityGroupIngress": [
+					{
+						"IpProtocol": "tcp",
+						"FromPort": "22",
+						"ToPort": "22",
+						"CidrIp": "0.0.0.0/0"
+					}
+				],
+				"VpcId": {
+					"Ref": "VPCBase"
+				},
+				"Tags": [
+					{
+						"Key": "ServiceProvider",
+						"Value": "Rackspace"
+					},
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "Project"
+									},
+									"ALL-SSH"
+								]
+							]
+						}
+					}
+				]
+			}
+		}
+	},
+	"Outputs": {}
+}
