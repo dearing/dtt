@@ -24,9 +24,9 @@ import (
 	//"fmt"
 	"os"
 
-	"dtt/lib"
-
 	"github.com/spf13/cobra"
+
+	"dtt/lib"
 )
 
 // testCmd represents the test command
@@ -36,11 +36,7 @@ var testCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if lib.TestPack(args) {
-			os.Exit(1)
-		} else {
-			os.Exit(0)
-		}
+		test(args...)
 	},
 }
 
@@ -57,4 +53,15 @@ func init() {
 	// is called directly, e.g.:
 	// testCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
+}
+
+func test(args ...string) bool {
+
+	if lib.TestPack(args...) {
+		os.Exit(1)
+	} else {
+		os.Exit(0)
+	}
+
+	return false
 }

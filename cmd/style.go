@@ -21,11 +21,8 @@
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/spf13/cobra"
-
 	log "github.com/Sirupsen/logrus"
+	"github.com/spf13/cobra"
 
 	"dtt/lib"
 )
@@ -37,7 +34,6 @@ var styleCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
-		fmt.Println("style called")
 
 		for i := 0; i < len(args); i++ {
 			err := lib.PrettyPrint(args[i])
