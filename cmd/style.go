@@ -34,17 +34,24 @@ var styleCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
-
-		for i := 0; i < len(args); i++ {
-			err := lib.PrettyPrint(args[i])
-			if err != nil {
-				log.Errorf("%s\n%s", args[i], err)
-			} else {
-				log.Infof("%s", args[i])
-			}
-
-		}
+		styleCmdRun(args...)
 	},
+}
+
+func styleCmdRun(args ...string) {
+
+	for _, arg := range args {
+
+		updated, err := lib.PrettyPrint(arg)
+
+		if err != nil {
+			log.Errorf("%s\n%s", arg, err)
+		}
+
+		if updated {
+			log.Warn(arg)
+		}
+	}
 }
 
 func init() {
