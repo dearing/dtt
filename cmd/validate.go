@@ -27,7 +27,7 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 
-	"dtt/lib"
+	"lib"
 )
 
 // validateCmd represents the validate command

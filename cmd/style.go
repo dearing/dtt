@@ -24,7 +24,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"dtt/lib"
+	"lib"
 )
 
 // styleCmd represents the style command

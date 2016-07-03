@@ -26,7 +26,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"dtt/lib"
+	"lib"
 )
 
 // testCmd represents the test command
