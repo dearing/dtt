@@ -24,7 +24,7 @@ import (
 	//"fmt"
 	"os"
 
-	"github.rackspace.com/dtt/lib"
+	"dtt/lib"
 
 	"github.com/spf13/cobra"
 )

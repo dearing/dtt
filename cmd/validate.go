@@ -26,7 +26,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
-	"github.rackspace.com/dtt/lib"
+
+	"dtt/lib"
 )
 
 // validateCmd represents the validate command

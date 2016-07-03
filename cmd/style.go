@@ -27,7 +27,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.rackspace.com/dtt/lib"
+	"dtt/lib"
 )
 
 // styleCmd represents the style command
