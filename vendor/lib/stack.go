@@ -1,5 +1,6 @@
 package lib
 
+/*
 import (
 	"encoding/json"
 	"fmt"
@@ -312,3 +313,4 @@ func parse(test *Test) (slice []*cloudformation.Parameter) {
 	}
 	return
 }
+*/

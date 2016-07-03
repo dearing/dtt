@@ -42,15 +42,22 @@ func styleCmdRun(args ...string) {
 
 	for _, arg := range args {
 
-		updated, err := lib.PrettyPrint(arg)
-
+		t := &lib.Template{
+			File: arg,
+		}
+		err := t.Read()
 		if err != nil {
-			log.Errorf("%s\n%s", arg, err)
+			log.Errorf("%s\n%s", t.File, err)
+			continue
 		}
 
-		if updated {
-			log.Warn(arg)
+		err = t.PrettyPrint()
+		if err != nil {
+			log.Errorf("%s\n%s", t.File, err)
+			continue
 		}
+
+		log.Info("PASS ", t.File)
 	}
 }
 

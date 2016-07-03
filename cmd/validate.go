@@ -37,41 +37,63 @@ var validateCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		bucket := "drone-cform-validate"
 		var wg sync.WaitGroup
 
 		for i := 0; i < len(args); i++ {
 
-			file := args[i]
-			key := uuid.NewV4().String()
-
 			wg.Add(1)
 
-			go func(file, bucket, key string) {
+			go func(arg string) {
 				defer wg.Done()
-				err := run(file, bucket, key)
-				if err != nil {
-					log.Error("FAIL ", file, "\n", err)
+				validateCmdRun(arg)
 
-				} else {
-					log.Info("PASS ", file)
-				}
-
-			}(file, bucket, key)
+			}(args[i])
 
 		}
 		wg.Wait()
 	},
 }
 
-func run(file, bucket, key string) (err error) {
-	url, err := lib.Upload(file, bucket, key)
-	if err != nil {
-		println(err)
-	}
-	defer lib.Delete(file, bucket, key)
+func validateCmdRun(args ...string) {
 
-	return lib.Validate(url)
+	for _, arg := range args {
+
+		t := &lib.Template{
+			File:   arg,
+			Bucket: "drone-cform-validate",
+			Key:    uuid.NewV4().String(),
+		}
+
+		log.Debugf("READ %s", t.File)
+		err := t.Read()
+		if err != nil {
+			log.Errorf("%s\n%s", t.File, err)
+			continue
+		}
+
+		log.Debugf("UPLOAD %s", t.File)
+		err = t.Upload()
+		if err != nil {
+			log.Errorf("%s\n%s", t.File, err)
+			continue
+		}
+
+		log.Debugf("VALIDATE %s", t.File)
+		err = t.Validate()
+		if err != nil {
+			log.Errorf("%s\n%s", t.File, err)
+			continue
+		}
+
+		log.Debugf("DELETE %s", t.File)
+		err = t.Delete()
+		if err != nil {
+			log.Errorf("%s\n%s", t.File, err)
+			continue
+		}
+
+		log.Info("PASS ", t.File)
+	}
 }
 
 func init() {

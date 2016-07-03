@@ -3,10 +3,7 @@
 package lib
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"time"
 )
@@ -228,26 +225,4 @@ func name() string {
 
 	name := fmt.Sprintf("%s-%s", left[rand.Intn(len(left))], right[rand.Intn(len(right))])
 	return name
-}
-
-func PrettyPrint(file string) (changed bool, err error) {
-
-	body, err := ioutil.ReadFile(file)
-	if err != nil {
-		return false, err
-	}
-
-	var data bytes.Buffer
-
-	err = json.Indent(&data, body, "", "  ")
-	if err != nil {
-		return false, err
-	}
-
-	if bytes.Compare(body[:], data.Bytes()) != 0 {
-		err = ioutil.WriteFile(file, data.Bytes(), 0644)
-		changed = true
-	}
-
-	return changed, err
 }

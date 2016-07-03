@@ -1,9 +1,6 @@
 package lib
 
 import (
-	"strings"
-	"time"
-
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,7 +12,7 @@ import (
 // need to export
 var bucket = "drone-cform-validate"
 var region = "us-east-1"
-
+var fail = false
 var svc *cloudformation.CloudFormation
 var sss *s3.S3
 
@@ -28,28 +25,7 @@ func init() {
 
 }
 
-func Validate(url string) (err error) {
-
-	delay := uint(1)
-	for {
-		_, err = svc.ValidateTemplate(&cloudformation.ValidateTemplateInput{TemplateURL: &url})
-		if err != nil {
-			if strings.Contains(err.Error(), `Throttling: Rate exceeded`) {
-				delay = delay + 1
-				time.Sleep(1 << delay * time.Millisecond)
-				continue
-			} else {
-				return err
-			}
-		} else {
-			break
-		}
-	}
-
-	return err
-}
-
-// destroy the stack and print out the events for the curious
+/*// destroy the stack and print out the events for the curious
 func Kill(stackName string) (err error) {
 
 	events, err := svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
@@ -69,4 +45,6 @@ func Kill(stackName string) (err error) {
 		return
 	}
 
+	return
 }
+*/
