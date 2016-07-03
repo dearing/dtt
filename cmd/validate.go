@@ -33,12 +33,11 @@ import (
 // validateCmd represents the validate command
 var validateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "upload a template and call a validate request against it",
-	Long:  ``,
+	Short: "validate template(s)",
+	Long:  `Concurrently reads, uploads, validates and then deletes a series of templates.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		var wg sync.WaitGroup
-
 		for i := 0; i < len(args); i++ {
 
 			wg.Add(1)
@@ -51,6 +50,7 @@ var validateCmd = &cobra.Command{
 
 		}
 		wg.Wait()
+
 	},
 }
 

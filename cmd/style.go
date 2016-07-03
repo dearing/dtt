@@ -30,7 +30,7 @@ import (
 // styleCmd represents the style command
 var styleCmd = &cobra.Command{
 	Use:   "style",
-	Short: "format template to rackspace opinion",
+	Short: "pretty print a template on disk",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
