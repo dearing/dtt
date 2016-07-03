@@ -1,177 +1,177 @@
 {
-	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "Challenge-01 for FAWS : Create Base Network + Bastion Server",
-	"Parameters": {
-		"SshKeyName": {
-			"Type": "String"
-		},
-		"NetworkVpcId": {
-			"Type": "String"
-		},
-		"NetworkSubnetId": {
-			"Type": "String"
-		},
-		"BastionName": {
-			"Type": "String"
-		},
-		"InstanceSize": {
-			"Type": "String",
-			"Default": "t2.micro",
-			"AllowedValues": [
-				"t2.micro",
-				"t2.small"
-			]
-		}
-	},
-	"Mappings": {
-		"RegionToBastionAmi": {
-			"us-east-1": {
-				"Ami": "ami-60b6c60a"
-			},
-			"us-west-1": {
-				"Ami": "ami-d5ea86b5"
-			},
-			"us-west-2": {
-				"Ami": "ami-f0091d91"
-			}
-		}
-	},
-	"Resources": {
-		"ComputeEc2SecurityGroup": {
-			"Type": "AWS::EC2::SecurityGroup",
-			"Properties": {
-				"GroupDescription": "SSH Access",
-				"SecurityGroupIngress": {
-					"CidrIp": "0.0.0.0/0",
-					"FromPort": 22,
-					"ToPort": 22,
-					"IpProtocol": "tcp"
-				},
-				"VpcId": {
-					"Ref": "NetworkVpcId"
-				}
-			}
-		},
-		"BastionEc2Instance": {
-			"Type": "AWS::EC2::Instance",
-			"Properties": {
-				"ImageId": {
-					"Fn::FindInMap": [
-						"RegionToBastionAmi",
-						{
-							"Ref": "AWS::Region"
-						},
-						"Ami"
-					]
-				},
-				"InstanceType": {
-					"Ref": "InstanceSize"
-				},
-				"KeyName": {
-					"Ref": "SshKeyName"
-				},
-				"UserData": {
-					"Fn::Base64": {
-						"Fn::Join": [
-							"",
-							[
-								"#!/bin/bash -xe\n",
-								"yum update -y aws-cfn-bootstrap\n",
-								"/opt/aws/bin/cfn-init  -v --region ",
-								{
-									"Ref": "AWS::Region"
-								},
-								" -s ",
-								{
-									"Ref": "AWS::StackName"
-								},
-								" -r BastionEc2Instance"
-							]
-						]
-					}
-				},
-				"Tags": [
-					{
-						"Key": "Name",
-						"Value": {
-							"Fn::Join": [
-								"",
-								[
-									{
-										"Ref": "BastionName"
-									},
-									"Bastion"
-								]
-							]
-						}
-					}
-				],
-				"NetworkInterfaces": [
-					{
-						"DeviceIndex": 0,
-						"AssociatePublicIpAddress": "true",
-						"SubnetId": {
-							"Ref": "NetworkSubnetId"
-						},
-						"GroupSet": [
-							{
-								"Ref": "ComputeEc2SecurityGroup"
-							}
-						]
-					}
-				]
-			},
-			"Metadata": {
-				"AWS::CloudFormation::Init": {
-					"configSets": {
-						"default": [
-							"AddRack"
-						]
-					},
-					"AddRack": {
-						"commands": {
-							"00_get_key": {
-								"command": "curl -s https://raw.githubusercontent.com/rax-brazil/pub-ssh-keys/master/rackerkeys.sh | bash > /dev/null",
-								"ignoreErrors": true
-							},
-							"01_initial_url": {
-								"command": "mkdir -p /etc/sft && echo 'InitialURL: https://scaleft.api.manage.rackspace.com' > /etc/sft/sftd.yaml",
-								"ignoreErrors": true
-							},
-							"02_trust_key": {
-								"command": "rpm --import https://www.scaleft.com/dl/scaleft_rpm_key.asc",
-								"ignoreErrors": true
-							},
-							"03_add_repo": {
-								"command": "curl -C - https://www.scaleft.com/dl/scaleft_yum.repo | tee /etc/yum.repos.d/scaleft.repo",
-								"ignoreErrors": true
-							},
-							"04_install_scaleft": {
-								"command": "yum install -y -q scaleft-server-tools",
-								"ignoreErrors": false
-							},
-							"05_install_ssm": {
-								"command": "curl https://amazon-ssm-us-west-2.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o amazon-ssm-agent.rpm && yum install -y amazon-ssm-agent.rpm",
-								"ignoreErrors": true
-							}
-						}
-					}
-				}
-			}
-		}
-	},
-	"Outputs": {
-		"Creator": {
-			"Description": "Stack creator",
-			"Value": "dyla5639"
-		},
-		"BastionAddress": {
-			"Value": {
-				"Fn::GetAtt": [
-					"BastionEc2Instance",
-					"PublicIp"
-				]
-			}
-		}
-	}
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Challenge-01 for FAWS : Create Base Network + Bastion Server",
+  "Parameters": {
+    "SshKeyName": {
+      "Type": "String"
+    },
+    "NetworkVpcId": {
+      "Type": "String"
+    },
+    "NetworkSubnetId": {
+      "Type": "String"
+    },
+    "BastionName": {
+      "Type": "String"
+    },
+    "InstanceSize": {
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small"
+      ]
+    }
+  },
+  "Mappings": {
+    "RegionToBastionAmi": {
+      "us-east-1": {
+        "Ami": "ami-60b6c60a"
+      },
+      "us-west-1": {
+        "Ami": "ami-d5ea86b5"
+      },
+      "us-west-2": {
+        "Ami": "ami-f0091d91"
+      }
+    }
+  },
+  "Resources": {
+    "ComputeEc2SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "SSH Access",
+        "SecurityGroupIngress": {
+          "CidrIp": "0.0.0.0/0",
+          "FromPort": 22,
+          "ToPort": 22,
+          "IpProtocol": "tcp"
+        },
+        "VpcId": {
+          "Ref": "NetworkVpcId"
+        }
+      }
+    },
+    "BastionEc2Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionToBastionAmi",
+            {
+              "Ref": "AWS::Region"
+            },
+            "Ami"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceSize"
+        },
+        "KeyName": {
+          "Ref": "SshKeyName"
+        },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "yum update -y aws-cfn-bootstrap\n",
+                "/opt/aws/bin/cfn-init  -v --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " -r BastionEc2Instance"
+              ]
+            ]
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "BastionName"
+                  },
+                  "Bastion"
+                ]
+              ]
+            }
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": 0,
+            "AssociatePublicIpAddress": "true",
+            "SubnetId": {
+              "Ref": "NetworkSubnetId"
+            },
+            "GroupSet": [
+              {
+                "Ref": "ComputeEc2SecurityGroup"
+              }
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "default": [
+              "AddRack"
+            ]
+          },
+          "AddRack": {
+            "commands": {
+              "00_get_key": {
+                "command": "curl -s https://raw.githubusercontent.com/rax-brazil/pub-ssh-keys/master/rackerkeys.sh | bash > /dev/null",
+                "ignoreErrors": true
+              },
+              "01_initial_url": {
+                "command": "mkdir -p /etc/sft && echo 'InitialURL: https://scaleft.api.manage.rackspace.com' > /etc/sft/sftd.yaml",
+                "ignoreErrors": true
+              },
+              "02_trust_key": {
+                "command": "rpm --import https://www.scaleft.com/dl/scaleft_rpm_key.asc",
+                "ignoreErrors": true
+              },
+              "03_add_repo": {
+                "command": "curl -C - https://www.scaleft.com/dl/scaleft_yum.repo | tee /etc/yum.repos.d/scaleft.repo",
+                "ignoreErrors": true
+              },
+              "04_install_scaleft": {
+                "command": "yum install -y -q scaleft-server-tools",
+                "ignoreErrors": false
+              },
+              "05_install_ssm": {
+                "command": "curl https://amazon-ssm-us-west-2.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o amazon-ssm-agent.rpm && yum install -y amazon-ssm-agent.rpm",
+                "ignoreErrors": true
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "Creator": {
+      "Description": "Stack creator",
+      "Value": "dyla5639"
+    },
+    "BastionAddress": {
+      "Value": {
+        "Fn::GetAtt": [
+          "BastionEc2Instance",
+          "PublicIp"
+        ]
+      }
+    }
+  }
 }
