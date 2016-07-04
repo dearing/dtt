@@ -1,4 +1,4 @@
-package lib
+package dtt
 
 import (
 	log "github.com/Sirupsen/logrus"

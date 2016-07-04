@@ -1,6 +1,6 @@
 // NAMES lifted from docker
 
-package lib
+package dtt
 
 import (
 	"fmt"

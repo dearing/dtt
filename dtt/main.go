@@ -20,7 +20,7 @@
 
 package main
 
-import "github.com/faws/dtt"
+import "github.com/dearing/dtt/dtt/cmd"
 
 func main() {
 	cmd.Execute()

@@ -24,10 +24,10 @@ import (
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
+
+	"github.com/dearing/dtt"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
-
-	"lib"
 )
 
 // validateCmd represents the validate command
@@ -58,7 +58,7 @@ func validateCmdRun(args ...string) {
 
 	for _, arg := range args {
 
-		t := &lib.Template{
+		t := &dtt.Template{
 			File:   arg,
 			Bucket: "drone-cform-validate",
 			Key:    uuid.NewV4().String(),

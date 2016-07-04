@@ -21,63 +21,86 @@
 package cmd
 
 import (
-	log "github.com/Sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"encoding/json"
+	"io/ioutil"
+	"sync"
 
-	"lib"
+	log "github.com/Sirupsen/logrus"
+	"github.com/dearing/dtt"
+	"github.com/spf13/cobra"
 )
 
-// styleCmd represents the style command
-var styleCmd = &cobra.Command{
-	Use:   "style",
-	Short: "pretty print a template on disk",
+// testCmd represents the test command
+var testCmd = &cobra.Command{
+	Use:   "test",
+	Short: "*dev* don't use",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
-		styleCmdRun(args...)
+		testCmdRun(args...)
 	},
 }
 
-func styleCmdRun(args ...string) {
+func testCmdRun(args ...string) {
+
+	var fail = false
 
 	for _, arg := range args {
 
-		t := &lib.Template{
-			File: arg,
-		}
-		err := t.Read()
+		var wg sync.WaitGroup
+
+		registry, err := ioutil.ReadFile(arg)
 		if err != nil {
-			log.Errorf("%s\n%s", t.File, err)
+			log.Error(err.Error())
+			fail = true
 			continue
 		}
 
-		err = t.PrettyPrint()
+		var tests []dtt.Suite
+
+		err = json.Unmarshal(registry, &tests)
 		if err != nil {
-			log.Errorf("%s\n%s", t.File, err)
+			log.Error(err.Error())
+			fail = true
 			continue
 		}
 
-		t.Write()
-		if err != nil {
-			log.Errorf("%s\n%s", t.File, err)
-			continue
+		//log.Debugf("%+v", tests)
+
+		for i := 0; i < len(tests); i++ {
+			wg.Add(1)
+			go func(s *dtt.Suite) {
+				defer wg.Done()
+				err := s.Execute()
+				if err != nil {
+					log.Error(err)
+				}
+			}(&tests[i])
 		}
 
-		log.Info("PASS ", t.File)
+		wg.Wait()
+
 	}
+
+	if fail {
+		log.Error("F̶̵̣̝̬͙͕͇̤̏ͯ̾ͣ͛͗̎͛͟A̴͚̗̒̉͌͂̎ͫI̻̤̝̖ͭ̈́̑͘͠ͅL̠̩̝͇͙ͯ͂̇̅͒")
+
+	}
+	log.Info("PASS")
+
 }
 
 func init() {
-	RootCmd.AddCommand(styleCmd)
+	RootCmd.AddCommand(testCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// styleCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// testCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// styleCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// testCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 }
