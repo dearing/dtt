@@ -1,12 +1,12 @@
 # DTT // dearing's template tool
 
-Common template testing wrapped into a simple CLI.
+Common template operations wrapped into a simple CLI.
 
 | arg | description |
 |--------|-------|
-|`secret` | AWS Secret |
 |`key` | AWS Key |
 |`region` | AWS Region |
+|`secret` | AWS Secret |
 
 style
 ---
