@@ -2,6 +2,8 @@
 
 Common template operations wrapped into a simple CLI.
 
+[![Build Status](https://drone.dearing.tech/api/badges/dearing/dtt/status.svg)](https://drone.dearing.tech/dearing/dtt)
+
 | arg | description |
 |--------|-------|
 |`key` | AWS Key |
