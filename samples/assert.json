@@ -2,7 +2,9 @@
   {
     "comment": "test basic_vpc without nat gateways",
     "id": "basic_vpc",
-    "template": "cloudformation/basic_vpc.template",
+    "template": {
+      "file": "samples/cloudformation/basic_vpc.template"
+    },
     "parameters": [
       {
         "ParameterKey": "Project",

@@ -16,7 +16,7 @@ type Template struct {
 	Body   []byte
 	Bucket string
 	Differ bool
-	File   string
+	File   string `json:"file"`
 	Key    string
 	Pretty bool
 	URL    string

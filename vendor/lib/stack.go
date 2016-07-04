@@ -1,6 +1,5 @@
 package lib
 
-/*
 import (
 	"encoding/json"
 	"fmt"
@@ -15,24 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
-var fail = false
-
 var registry = make(map[string]*cloudformation.DescribeStackResourcesOutput)
-
-// Test represents a relationship of templates and parameters
-// called in branches, concurrently
-type Test struct {
-	Comment    string `json:"comment"`
-	ID         string `json:"id"`
-	Template   string `json:"template"`
-	Parameters []struct {
-		ParameterKey     string `json:"ParameterKey"`
-		ParameterValue   string `json:"ParameterValue"`
-		UsePreviousValue bool   `json:"UsePreviousValue"`
-	} `json:"parameters"`
-	Children []Test      `json:"children"`
-	Tests    []Assertion `json:"tests"`
-}
 
 type Assertion struct {
 	Target string `json:"Target"`
@@ -40,178 +22,152 @@ type Assertion struct {
 	Op     string `json:"Op"`
 }
 
-func TestPack(args ...string) bool {
+// Test represents a relationship of templates and parameters
+// called in branches, concurrently
+type Suite struct {
+	Comment    string   `json:"comment"`
+	ID         string   `json:"id"`
+	Template   Template `json:"template"`
+	Parameters []struct {
+		ParameterKey     string `json:"ParameterKey"`
+		ParameterValue   string `json:"ParameterValue"`
+		UsePreviousValue bool   `json:"UsePreviousValue"`
+	} `json:"parameters"`
+	Children  []Suite     `json:"children"`
+	Tests     []Assertion `json:"tests"`
+	File      string
+	Body      []byte
+	StackName string
+	Params    *cloudformation.CreateStackInput
+	Events    *cloudformation.DescribeStackEventsOutput
+	Timeout   int
+}
 
-	log.Info(args)
+func (s *Suite) Read() (err error) {
+	s.Body, err = ioutil.ReadFile(s.File)
+	return
+}
 
-	if len(args) < 1 {
-		log.Error("require at least one test package to continue")
-		fail = true
-	}
+func (s *Suite) Create() (err error) {
+	_, err = svc.CreateStack(s.Params)
+	return
+}
 
-	for _, file := range args[:] {
+func (s *Suite) Kill() (err error) {
+	s.Events, err = svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
+		StackName: aws.String(s.StackName),
+	})
 
-		var wg sync.WaitGroup
+	_, err = svc.DeleteStack(&cloudformation.DeleteStackInput{
+		StackName: aws.String(s.StackName),
+	})
 
-		registry, err := ioutil.ReadFile(file)
-		if err != nil {
-			log.Error(err.Error())
-			fail = true
-			continue
-		}
-
-		var tests []Test
-
-		err = json.Unmarshal(registry, &tests)
-		if err != nil {
-			log.Error(err.Error())
-			fail = true
-			continue
-		}
-
-		for i := 0; i < len(tests); i++ {
-			wg.Add(1)
-			go func(test *Test) {
-				defer wg.Done()
-				run(test)
-			}(&tests[i])
-		}
-
-		wg.Wait()
-
-	}
-
-	if fail {
-		log.Error("F̶̵̣̝̬͙͕͇̤̏ͯ̾ͣ͛͗̎͛͟A̴͚̗̒̉͌͂̎ͫI̻̤̝̖ͭ̈́̑͘͠ͅL̠̩̝͇͙ͯ͂̇̅͒")
-
-	}
-	log.Info("PASS")
-
-	return fail
-
+	return
 }
 
 // recursively create stacks of children and wait
-func run(test *Test) {
+func (s *Suite) Execute() (err error) {
 
 	var wg sync.WaitGroup
 
-	if len(registry) != 0 {
-		log.Debug(registry)
-	}
+	s.Template.Key = uuid.NewV4().String()
+	s.Template.Bucket = "drone-cform-validate"
 
-	key := uuid.NewV4().String()
-	log.Infof("uploading %s to %s/%s", test.Template, bucket, key)
-	url, err := Upload(test.Template, bucket, key)
+	err = s.Template.Read()
 	if err != nil {
-		log.Error(err)
-		fail = true
 		return
 	}
-	defer Delete(test.Template, bucket, key)
-	defer log.Infof("deleting %s", url)
 
-	log.Infof("validating %s", url)
-	err = Validate(url)
+	err = s.Template.Upload()
 	if err != nil {
-		log.Error(err)
-		fail = true
+		return
+	}
+
+	defer s.Template.Delete()
+
+	err = s.Template.Validate()
+	if err != nil {
 		return
 	}
 
 	// lifted Docker's container naming because I'm lazy
-	stackName := strings.ToUpper(name())
+	s.StackName = strings.ToUpper(name())
 
 	// parameters to create this stack by
-	params := &cloudformation.CreateStackInput{
-		StackName: aws.String(stackName),
+	s.Params = &cloudformation.CreateStackInput{
+		StackName: &s.StackName,
 		Capabilities: []*string{
 			aws.String("CAPABILITY_IAM"),
 		},
 		DisableRollback: aws.Bool(true),
-		Parameters:      parse(test),
+		Parameters:      s.Parse(),
 		Tags: []*cloudformation.Tag{
 			{
 				Key:   aws.String("drone-testing"),
-				Value: aws.String(stackName),
+				Value: aws.String(s.StackName),
 			},
 		},
-		TemplateURL:      &url,
+		TemplateURL:      &s.Template.URL,
 		TimeoutInMinutes: aws.Int64(10),
 	}
 
-	log.Infof("creating stack %s from %s // %s", stackName, url, test.Comment)
-	resp, err := svc.CreateStack(params)
-	if err != nil {
-		log.Error(err.Error())
-		fail = true
-		return
-	}
+	s.Create()
 
-	log.Debugf("%s\n%s", stackName, resp)
-	defer Kill(stackName)
-	defer log.Infof("deleting stack %s // %s", stackName, test.Comment)
+	defer s.Kill()
 
 	// useful to see the end results for debugging
-	input, err := svc.DescribeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(stackName),
+	_, err = svc.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(s.StackName),
 	})
 	if err != nil {
-		log.Error(err.Error())
-		fail = true
 		return
 	}
-	log.Debugf("%s\n%s", stackName, input)
 
 	// idle while the stack cooks
 	err = svc.WaitUntilStackCreateComplete(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(stackName),
+		StackName: aws.String(s.StackName),
 	})
 	if err != nil {
-		log.Error(err.Error())
-		fail = true
 		return
 	}
-
-	log.Infof("PASS: %s // %s", stackName, test.Comment)
 
 	// the stack should be good, fetch the resources and store them in our registry
 	resources, err := svc.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(stackName),
+		StackName: aws.String(s.StackName),
 	})
 	if err != nil {
 		log.Error(err.Error())
 		fail = true
 		return
 	}
-	registry[test.ID] = resources
+	registry[s.ID] = resources
 
 	events, err := svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
-		StackName: aws.String(stackName),
+		StackName: aws.String(s.StackName),
 	})
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
 
-	for i := 0; i < len(test.Tests); i++ {
-		log.Debugf("TEST: %s : %+v", test.ID, test.Tests[i])
-		result := assert(events.StackEvents, test.Tests[i])
+	for i := 0; i < len(s.Tests); i++ {
+		result := assert(events.StackEvents, s.Tests[i])
 		if result == false {
 			fail = true
 		}
 	}
 
-	for i := 0; i < len(test.Children); i++ {
+	for i := 0; i < len(s.Children); i++ {
 		wg.Add(1)
-		go func(test *Test) {
+		go func(s *Suite) {
 			defer wg.Done()
-			run(test)
-		}(&test.Children[i])
+			s.Execute()
+		}(&s.Children[i])
 	}
 
 	wg.Wait()
 
+	return
 }
 
 func assert(events []*cloudformation.StackEvent, assert Assertion) (result bool) {
@@ -283,10 +239,10 @@ func assert(events []*cloudformation.StackEvent, assert Assertion) (result bool)
 // iterate over the parameters from the test package
 // and replace for items in the registry
 // TODO: clean up
-func parse(test *Test) (slice []*cloudformation.Parameter) {
-	for i := 0; i < len(test.Parameters); i++ {
+func (s *Suite) Parse() (slice []*cloudformation.Parameter) {
+	for i := 0; i < len(s.Parameters); i++ {
 
-		log.Debug("Evaluating: ", test.Parameters[i].ParameterValue)
+		log.Debug("Evaluating: ", s.Parameters[i].ParameterValue)
 
 		for k, v := range registry {
 
@@ -294,10 +250,10 @@ func parse(test *Test) (slice []*cloudformation.Parameter) {
 
 				y := fmt.Sprintf("%s.%s", k, *b.LogicalResourceId)
 				z := *b.PhysicalResourceId
-				replacement := strings.Replace(test.Parameters[i].ParameterValue, y, z, -1)
-				if replacement != test.Parameters[i].ParameterValue {
+				replacement := strings.Replace(s.Parameters[i].ParameterValue, y, z, -1)
+				if replacement != s.Parameters[i].ParameterValue {
 					log.Debugf("substitution '%s' => '%s'", y, replacement)
-					test.Parameters[i].ParameterValue = replacement
+					s.Parameters[i].ParameterValue = replacement
 				}
 
 			}
@@ -306,11 +262,10 @@ func parse(test *Test) (slice []*cloudformation.Parameter) {
 
 		slice = append(slice,
 			&cloudformation.Parameter{
-				ParameterKey:     &test.Parameters[i].ParameterKey,
-				ParameterValue:   &test.Parameters[i].ParameterValue,
-				UsePreviousValue: &test.Parameters[i].UsePreviousValue},
+				ParameterKey:     &s.Parameters[i].ParameterKey,
+				ParameterValue:   &s.Parameters[i].ParameterValue,
+				UsePreviousValue: &s.Parameters[i].UsePreviousValue},
 		)
 	}
 	return
 }
-*/
