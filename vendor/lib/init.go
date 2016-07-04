@@ -24,27 +24,3 @@ func init() {
 	svc = cloudformation.New(ses, &aws.Config{Region: aws.String(region)})
 
 }
-
-/*// destroy the stack and print out the events for the curious
-func Kill(stackName string) (err error) {
-
-	events, err := svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
-		StackName: aws.String(stackName),
-	})
-	if err != nil {
-		return
-	}
-
-	resp, err := svc.DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String(stackName),
-	})
-
-	if err != nil {
-		log.Error(err.Error())
-		fail = true
-		return
-	}
-
-	return
-}
-*/

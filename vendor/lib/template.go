@@ -12,14 +12,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
+// Template represents a CloudFormation template
 type Template struct {
-	Body   []byte
-	Bucket string
-	Differ bool
-	File   string `json:"file"`
-	Key    string
-	Pretty bool
-	URL    string
+	File   string `json:"file"` // template filename
+	Body   []byte // bytes of file
+	Bucket string // s3 bucket name
+	Key    string // s3 object name
+	URL    string // s3 url of uploaded template
+	Differ bool   // true when Body is different than what was read
+	Pretty bool   // true when parsed as pretty
 }
 
 // Read a file from disk into BODY

@@ -35,7 +35,7 @@ import (
 // testCmd represents the test command
 var testCmd = &cobra.Command{
 	Use:   "test",
-	Short: "A brief description of your command",
+	Short: "*dev* don't use",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
@@ -89,10 +89,6 @@ func testCmdRun(args ...string) {
 
 	}
 	log.Info("PASS")
-
-}
-
-func run() {
 
 }
 

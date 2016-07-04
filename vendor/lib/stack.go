@@ -65,6 +65,62 @@ func (s *Suite) Kill() (err error) {
 	return
 }
 
+// iterate over the parameters from the test package
+// and replace for items in the registry
+// TODO: clean up
+func (s *Suite) Parse() (slice []*cloudformation.Parameter) {
+	for i := 0; i < len(s.Parameters); i++ {
+
+		for k, v := range registry {
+
+			for _, b := range v.StackResources {
+
+				y := fmt.Sprintf("%s.%s", k, *b.LogicalResourceId)
+				z := *b.PhysicalResourceId
+				replacement := strings.Replace(s.Parameters[i].ParameterValue, y, z, -1)
+				if replacement != s.Parameters[i].ParameterValue {
+					log.Debugf("substitution '%s' => '%s'", y, replacement)
+					s.Parameters[i].ParameterValue = replacement
+				}
+
+			}
+
+		}
+
+		slice = append(slice,
+			&cloudformation.Parameter{
+				ParameterKey:     &s.Parameters[i].ParameterKey,
+				ParameterValue:   &s.Parameters[i].ParameterValue,
+				UsePreviousValue: &s.Parameters[i].UsePreviousValue},
+		)
+	}
+	return
+}
+
+/*// destroy the stack and print out the events for the curious
+func Kill(stackName string) (err error) {
+
+	events, err := svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
+		StackName: aws.String(stackName),
+	})
+	if err != nil {
+		return
+	}
+
+	resp, err := svc.DeleteStack(&cloudformation.DeleteStackInput{
+		StackName: aws.String(stackName),
+	})
+
+	if err != nil {
+		log.Error(err.Error())
+		fail = true
+		return
+	}
+
+	return
+}
+*/
+
 // recursively create stacks of children and wait
 func (s *Suite) Execute() (err error) {
 
@@ -233,39 +289,5 @@ func assert(events []*cloudformation.StackEvent, assert Assertion) (result bool)
 
 	}
 
-	return
-}
-
-// iterate over the parameters from the test package
-// and replace for items in the registry
-// TODO: clean up
-func (s *Suite) Parse() (slice []*cloudformation.Parameter) {
-	for i := 0; i < len(s.Parameters); i++ {
-
-		log.Debug("Evaluating: ", s.Parameters[i].ParameterValue)
-
-		for k, v := range registry {
-
-			for _, b := range v.StackResources {
-
-				y := fmt.Sprintf("%s.%s", k, *b.LogicalResourceId)
-				z := *b.PhysicalResourceId
-				replacement := strings.Replace(s.Parameters[i].ParameterValue, y, z, -1)
-				if replacement != s.Parameters[i].ParameterValue {
-					log.Debugf("substitution '%s' => '%s'", y, replacement)
-					s.Parameters[i].ParameterValue = replacement
-				}
-
-			}
-
-		}
-
-		slice = append(slice,
-			&cloudformation.Parameter{
-				ParameterKey:     &s.Parameters[i].ParameterKey,
-				ParameterValue:   &s.Parameters[i].ParameterValue,
-				UsePreviousValue: &s.Parameters[i].UsePreviousValue},
-		)
-	}
 	return
 }
