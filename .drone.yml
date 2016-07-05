@@ -1,7 +1,6 @@
 build:
-  image: golang:1.6
+  image: gometalinter
   commands:
-    # - go get gometalinter
-    # - gometalinter install
+    - gometalinter --deadline 30s
     - go build ./...
-#    - go test -v -cover -bench=.1 ./...
+    
