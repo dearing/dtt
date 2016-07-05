@@ -1,10 +1,7 @@
-matrix:
-  GO_VERSION:
-    - 1.6
-    - 1.5
 build:
-  image: golang:$$GO_VERSION
+  image: golang:1.6
   commands:
-    - go get -v ./...
+    # - go get gometalinter
+    # - gometalinter install
     - go build ./...
-    - go test -v -cover -bench=.1 ./...
+#    - go test -v -cover -bench=.1 ./...
