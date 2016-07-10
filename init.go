@@ -10,7 +10,7 @@ import (
 )
 
 // need to export
-var bucket = "drone-cform-validate"
+// var bucket = "drone-cform-validate"
 var region = "us-east-1"
 var fail = false
 var svc *cloudformation.CloudFormation
