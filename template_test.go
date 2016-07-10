@@ -1,5 +1,6 @@
 package dtt
 
+// TODO: adopt testify
 import (
 	"os"
 	"testing"
