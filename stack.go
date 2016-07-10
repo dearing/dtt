@@ -25,12 +25,12 @@ type Assertion struct {
 // Test represents a relationship of templates and parameters
 // called in branches, concurrently
 type Stack struct {
-	File      string
-	Body      []byte
-	StackName string
-	Comment   string `json:"comment"`
-	ID        string `json:"id"`
-	Timeout   int
+	File    string
+	Body    []byte
+	Name    string
+	Comment string `json:"comment"`
+	ID      string `json:"id"`
+	Timeout int
 
 	Template Template `json:"template"`
 
@@ -59,11 +59,11 @@ func (s *Stack) Create() (err error) {
 
 func (s *Stack) Kill() (err error) {
 	s.Events, err = svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 
 	_, err = svc.DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 
 	return
@@ -101,30 +101,6 @@ func (s *Stack) Parse() (slice []*cloudformation.Parameter) {
 	return
 }
 
-/*// destroy the stack and print out the events for the curious
-func Kill(stackName string) (err error) {
-
-	events, err := svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
-		StackName: aws.String(stackName),
-	})
-	if err != nil {
-		return
-	}
-
-	resp, err := svc.DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String(stackName),
-	})
-
-	if err != nil {
-		log.Error(err.Error())
-		fail = true
-		return
-	}
-
-	return
-}
-*/
-
 // recursively create stacks of children and wait
 func (s *Stack) Execute() (err error) {
 
@@ -151,11 +127,11 @@ func (s *Stack) Execute() (err error) {
 	}
 
 	// lifted Docker's container naming because I'm lazy
-	s.StackName = strings.ToUpper(name())
+	s.Name = strings.ToUpper(name())
 
 	// parameters to create this stack by
 	s.Params = &cloudformation.CreateStackInput{
-		StackName: &s.StackName,
+		StackName: &s.Name,
 		Capabilities: []*string{
 			aws.String("CAPABILITY_IAM"),
 		},
@@ -164,7 +140,7 @@ func (s *Stack) Execute() (err error) {
 		Tags: []*cloudformation.Tag{
 			{
 				Key:   aws.String("drone-testing"),
-				Value: aws.String(s.StackName),
+				Value: aws.String(s.Name),
 			},
 		},
 		TemplateURL:      &s.Template.URL,
@@ -177,7 +153,7 @@ func (s *Stack) Execute() (err error) {
 
 	// useful to see the end results for debugging
 	_, err = svc.DescribeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 	if err != nil {
 		return
@@ -185,7 +161,7 @@ func (s *Stack) Execute() (err error) {
 
 	// idle while the stack cooks
 	err = svc.WaitUntilStackCreateComplete(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 	if err != nil {
 		return
@@ -193,7 +169,7 @@ func (s *Stack) Execute() (err error) {
 
 	// the stack should be good, fetch the resources and store them in our registry
 	resources, err := svc.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 	if err != nil {
 		log.Error(err.Error())
@@ -203,7 +179,7 @@ func (s *Stack) Execute() (err error) {
 	registry[s.ID] = resources
 
 	events, err := svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 	if err != nil {
 		log.Error(err.Error())
