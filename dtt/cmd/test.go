@@ -56,7 +56,7 @@ func testCmdRun(args ...string) {
 			continue
 		}
 
-		var tests []dtt.Suite
+		var tests []dtt.Stack
 
 		err = json.Unmarshal(registry, &tests)
 		if err != nil {
@@ -69,7 +69,7 @@ func testCmdRun(args ...string) {
 
 		for i := 0; i < len(tests); i++ {
 			wg.Add(1)
-			go func(s *dtt.Suite) {
+			go func(s *dtt.Stack) {
 				defer wg.Done()
 				err := s.Execute()
 				if err != nil {

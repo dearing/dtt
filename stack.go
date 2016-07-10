@@ -16,59 +16,66 @@ import (
 
 var registry = make(map[string]*cloudformation.DescribeStackResourcesOutput)
 
+// Assertion compares computed and expected results by Op
 type Assertion struct {
 	Target string `json:"Target"`
 	Test   string `json:"Test"`
 	Op     string `json:"Op"`
 }
 
-// Test represents a relationship of templates and parameters
-// called in branches, concurrently
-type Suite struct {
-	Comment    string   `json:"comment"`
-	ID         string   `json:"id"`
-	Template   Template `json:"template"`
+// Stack represents a relationship of templates and parameters called in branches, concurrently
+type Stack struct {
+	File    string
+	Body    []byte
+	Name    string
+	Comment string `json:"comment"`
+	ID      string `json:"id"`
+	Timeout int
+
+	Template Template `json:"template"`
+
 	Parameters []struct {
 		ParameterKey     string `json:"ParameterKey"`
 		ParameterValue   string `json:"ParameterValue"`
 		UsePreviousValue bool   `json:"UsePreviousValue"`
 	} `json:"parameters"`
-	Children  []Suite     `json:"children"`
-	Tests     []Assertion `json:"tests"`
-	File      string
-	Body      []byte
-	StackName string
-	Params    *cloudformation.CreateStackInput
-	Events    *cloudformation.DescribeStackEventsOutput
-	Timeout   int
+
+	Children []Stack     `json:"children"`
+	Tests    []Assertion `json:"tests"`
+
+	Params *cloudformation.CreateStackInput
+	Events *cloudformation.DescribeStackEventsOutput
 }
 
-func (s *Suite) Read() (err error) {
+// Read opens and reads the file into a buffer
+func (s *Stack) Read() (err error) {
 	s.Body, err = ioutil.ReadFile(s.File)
 	return
 }
 
-func (s *Suite) Create() (err error) {
+// Create calls for the Stack to create itself in CloudFormation
+func (s *Stack) Create() (err error) {
 	_, err = svc.CreateStack(s.Params)
 	return
 }
 
-func (s *Suite) Kill() (err error) {
+// Kill calls for the Stack to be destroyed in CloudFormation
+func (s *Stack) Kill() (err error) {
 	s.Events, err = svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 
 	_, err = svc.DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 
 	return
 }
 
-// iterate over the parameters from the test package
+// Parse iterates over the parameters from the test package
 // and replace for items in the registry
 // TODO: clean up
-func (s *Suite) Parse() (slice []*cloudformation.Parameter) {
+func (s *Stack) Parse() (slice []*cloudformation.Parameter) {
 	for i := 0; i < len(s.Parameters); i++ {
 
 		for k, v := range registry {
@@ -97,32 +104,8 @@ func (s *Suite) Parse() (slice []*cloudformation.Parameter) {
 	return
 }
 
-/*// destroy the stack and print out the events for the curious
-func Kill(stackName string) (err error) {
-
-	events, err := svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
-		StackName: aws.String(stackName),
-	})
-	if err != nil {
-		return
-	}
-
-	resp, err := svc.DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String(stackName),
-	})
-
-	if err != nil {
-		log.Error(err.Error())
-		fail = true
-		return
-	}
-
-	return
-}
-*/
-
-// recursively create stacks of children and wait
-func (s *Suite) Execute() (err error) {
+// Execute recursively create stacks of children and wait
+func (s *Stack) Execute() (err error) {
 
 	var wg sync.WaitGroup
 
@@ -139,7 +122,12 @@ func (s *Suite) Execute() (err error) {
 		return
 	}
 
-	defer s.Template.Delete()
+	defer func() {
+		err = s.Template.Delete()
+		if err != nil {
+			return
+		}
+	}()
 
 	err = s.Template.Validate()
 	if err != nil {
@@ -147,11 +135,11 @@ func (s *Suite) Execute() (err error) {
 	}
 
 	// lifted Docker's container naming because I'm lazy
-	s.StackName = strings.ToUpper(name())
+	s.Name = strings.ToUpper(name())
 
 	// parameters to create this stack by
 	s.Params = &cloudformation.CreateStackInput{
-		StackName: &s.StackName,
+		StackName: &s.Name,
 		Capabilities: []*string{
 			aws.String("CAPABILITY_IAM"),
 		},
@@ -160,20 +148,28 @@ func (s *Suite) Execute() (err error) {
 		Tags: []*cloudformation.Tag{
 			{
 				Key:   aws.String("drone-testing"),
-				Value: aws.String(s.StackName),
+				Value: aws.String(s.Name),
 			},
 		},
 		TemplateURL:      &s.Template.URL,
 		TimeoutInMinutes: aws.Int64(10),
 	}
 
-	s.Create()
+	err = s.Create()
+	if err != nil {
+		return
+	}
 
-	defer s.Kill()
+	defer func() {
+		err = s.Kill()
+		if err != nil {
+			return
+		}
+	}()
 
 	// useful to see the end results for debugging
 	_, err = svc.DescribeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 	if err != nil {
 		return
@@ -181,7 +177,7 @@ func (s *Suite) Execute() (err error) {
 
 	// idle while the stack cooks
 	err = svc.WaitUntilStackCreateComplete(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 	if err != nil {
 		return
@@ -189,7 +185,7 @@ func (s *Suite) Execute() (err error) {
 
 	// the stack should be good, fetch the resources and store them in our registry
 	resources, err := svc.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 	if err != nil {
 		log.Error(err.Error())
@@ -199,7 +195,7 @@ func (s *Suite) Execute() (err error) {
 	registry[s.ID] = resources
 
 	events, err := svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
-		StackName: aws.String(s.StackName),
+		StackName: aws.String(s.Name),
 	})
 	if err != nil {
 		log.Error(err.Error())
@@ -208,16 +204,19 @@ func (s *Suite) Execute() (err error) {
 
 	for i := 0; i < len(s.Tests); i++ {
 		result := assert(events.StackEvents, s.Tests[i])
-		if result == false {
+		if !result {
 			fail = true
 		}
 	}
 
 	for i := 0; i < len(s.Children); i++ {
 		wg.Add(1)
-		go func(s *Suite) {
+		go func(s *Stack) {
 			defer wg.Done()
-			s.Execute()
+			err = s.Execute()
+			if err != nil {
+				return
+			}
 		}(&s.Children[i])
 	}
 

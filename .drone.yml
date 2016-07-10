@@ -1,6 +1,6 @@
 build:
   image: gometalinter
   commands:
-    - gometalinter --deadline 30s
-    - go build ./...
-    
+    - gometalinter --vendor --deadline=60s --concurrency=1 --cyclo-over=20 --disable=gotype
+    - gometalinter --vendor --deadline=60s --concurrency=1 --cyclo-over=20 --disable=gotype dtt/
+    - gometalinter --vendor --deadline=60s --concurrency=1 --cyclo-over=20 --disable=gotype dtt/cmd/

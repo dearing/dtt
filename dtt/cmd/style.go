@@ -56,7 +56,7 @@ func styleCmdRun(args ...string) {
 			continue
 		}
 
-		t.Write()
+		err = t.Write()
 		if err != nil {
 			log.Errorf("%s\n%s", t.File, err)
 			continue

@@ -1,5 +1,6 @@
 package dtt
 
+// TODO: adopt testify
 import (
 	"os"
 	"testing"
@@ -98,7 +99,10 @@ func TestValidate(t *testing.T) {
 			}
 		}
 
-		os.Remove(os.TempDir() + "/temp.json")
+		err = os.Remove(os.TempDir() + "/temp.json")
+		if err != nil {
+			return
+		}
 	}
 }
 
