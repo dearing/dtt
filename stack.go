@@ -112,23 +112,27 @@ func (s *Stack) Execute() (err error) {
 	s.Template.Key = uuid.NewV4().String()
 	s.Template.Bucket = "drone-cform-validate"
 
+	log.Debugf("READ %s", s.Template.File)
 	err = s.Template.Read()
 	if err != nil {
 		return
 	}
 
+	log.Debugf("UPLOAD %s / %s", s.Template.Bucket, s.Template.Key)
 	err = s.Template.Upload()
 	if err != nil {
 		return
 	}
 
 	defer func() {
+		log.Debugf("DELETE %s", s.Template.URL)
 		err = s.Template.Delete()
 		if err != nil {
 			return
 		}
 	}()
 
+	log.Debugf("VALIDATE %s", s.Template.URL)
 	err = s.Template.Validate()
 	if err != nil {
 		return
@@ -155,12 +159,14 @@ func (s *Stack) Execute() (err error) {
 		TimeoutInMinutes: aws.Int64(10),
 	}
 
+	log.Debugf("CREATE %s", s.Template.URL)
 	err = s.Create()
 	if err != nil {
 		return
 	}
 
 	defer func() {
+		log.Debugf("KILL %s", s.Template.URL)
 		err = s.Kill()
 		if err != nil {
 			return
@@ -193,6 +199,8 @@ func (s *Stack) Execute() (err error) {
 		return
 	}
 	registry[s.ID] = resources
+
+	log.Debug(resources)
 
 	events, err := svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
 		StackName: aws.String(s.Name),

@@ -49,7 +49,7 @@ func testCmdRun(args ...string) {
 
 		var wg sync.WaitGroup
 
-		registry, err := ioutil.ReadFile(arg)
+		stack, err := ioutil.ReadFile(arg)
 		if err != nil {
 			log.Error(err.Error())
 			fail = true
@@ -58,7 +58,7 @@ func testCmdRun(args ...string) {
 
 		var tests []dtt.Stack
 
-		err = json.Unmarshal(registry, &tests)
+		err = json.Unmarshal(stack, &tests)
 		if err != nil {
 			log.Error(err.Error())
 			fail = true

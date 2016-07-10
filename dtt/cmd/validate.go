@@ -78,15 +78,16 @@ func validateCmdRun(args ...string) {
 			continue
 		}
 
+		defer func() {
+			log.Debugf("DELETE %s", t.File)
+			err = t.Delete()
+			if err != nil {
+				log.Errorf("%s\n%s", t.File, err)
+			}
+		}()
+
 		log.Debugf("VALIDATE %s", t.File)
 		err = t.Validate()
-		if err != nil {
-			log.Errorf("%s\n%s", t.File, err)
-			continue
-		}
-
-		log.Debugf("DELETE %s", t.File)
-		err = t.Delete()
 		if err != nil {
 			log.Errorf("%s\n%s", t.File, err)
 			continue

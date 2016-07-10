@@ -68,6 +68,50 @@
         "Test": "FAIL ME",
         "Op": "eq"
       }
+    ],
+    "children": [
+      {
+        "comment": "test bastion template in private subnet",
+        "id": "bastion",
+        "template": {
+          "file": "samples/cloudformation/bastion.template"
+        },
+        "parameters": [
+          {
+            "ParameterKey": "SshKeyName",
+            "ParameterValue": "dearing",
+            "UsePreviousValue": false
+          },
+          {
+            "ParameterKey": "NetworkVpcId",
+            "ParameterValue": "basic_vpc.VPCBase",
+            "UsePreviousValue": false
+          },
+          {
+            "ParameterKey": "NetworkSubnetId",
+            "ParameterValue": "basic_vpc.PrivateNetAZ1",
+            "UsePreviousValue": false
+          },
+          {
+            "ParameterKey": "BastionName",
+            "ParameterValue": "basic_vpc.VPCBase Private Bastion",
+            "UsePreviousValue": false
+          },
+          {
+            "ParameterKey": "InstanceSize",
+            "ParameterValue": "t2.small",
+            "UsePreviousValue": false
+          }
+        ],
+        "tests": [
+          {
+            "Target": "PrivateNetAZ1.CidrBlock",
+            "Test": "10.0.3.0/24",
+            "Op": "eq"
+          }
+        ],
+        "children": []
+      }
     ]
   }
 ]
