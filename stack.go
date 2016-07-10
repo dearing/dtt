@@ -122,7 +122,12 @@ func (s *Stack) Execute() (err error) {
 		return
 	}
 
-	defer s.Template.Delete()
+	defer func() {
+		err = s.Template.Delete()
+		if err != nil {
+			return
+		}
+	}()
 
 	err = s.Template.Validate()
 	if err != nil {
@@ -150,9 +155,17 @@ func (s *Stack) Execute() (err error) {
 		TimeoutInMinutes: aws.Int64(10),
 	}
 
-	s.Create()
+	err = s.Create()
+	if err != nil {
+		return
+	}
 
-	defer s.Kill()
+	defer func() {
+		err = s.Kill()
+		if err != nil {
+			return
+		}
+	}()
 
 	// useful to see the end results for debugging
 	_, err = svc.DescribeStacks(&cloudformation.DescribeStacksInput{
@@ -200,7 +213,10 @@ func (s *Stack) Execute() (err error) {
 		wg.Add(1)
 		go func(s *Stack) {
 			defer wg.Done()
-			s.Execute()
+			err = s.Execute()
+			if err != nil {
+				return
+			}
 		}(&s.Children[i])
 	}
 
