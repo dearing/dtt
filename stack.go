@@ -24,36 +24,40 @@ type Assertion struct {
 
 // Test represents a relationship of templates and parameters
 // called in branches, concurrently
-type Suite struct {
-	Comment    string   `json:"comment"`
-	ID         string   `json:"id"`
-	Template   Template `json:"template"`
+type Stack struct {
+	File      string
+	Body      []byte
+	StackName string
+	Comment   string `json:"comment"`
+	ID        string `json:"id"`
+	Timeout   int
+
+	Template Template `json:"template"`
+
 	Parameters []struct {
 		ParameterKey     string `json:"ParameterKey"`
 		ParameterValue   string `json:"ParameterValue"`
 		UsePreviousValue bool   `json:"UsePreviousValue"`
 	} `json:"parameters"`
-	Children  []Suite     `json:"children"`
-	Tests     []Assertion `json:"tests"`
-	File      string
-	Body      []byte
-	StackName string
-	Params    *cloudformation.CreateStackInput
-	Events    *cloudformation.DescribeStackEventsOutput
-	Timeout   int
+
+	Children []Stack     `json:"children"`
+	Tests    []Assertion `json:"tests"`
+
+	Params *cloudformation.CreateStackInput
+	Events *cloudformation.DescribeStackEventsOutput
 }
 
-func (s *Suite) Read() (err error) {
+func (s *Stack) Read() (err error) {
 	s.Body, err = ioutil.ReadFile(s.File)
 	return
 }
 
-func (s *Suite) Create() (err error) {
+func (s *Stack) Create() (err error) {
 	_, err = svc.CreateStack(s.Params)
 	return
 }
 
-func (s *Suite) Kill() (err error) {
+func (s *Stack) Kill() (err error) {
 	s.Events, err = svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
 		StackName: aws.String(s.StackName),
 	})
@@ -68,7 +72,7 @@ func (s *Suite) Kill() (err error) {
 // iterate over the parameters from the test package
 // and replace for items in the registry
 // TODO: clean up
-func (s *Suite) Parse() (slice []*cloudformation.Parameter) {
+func (s *Stack) Parse() (slice []*cloudformation.Parameter) {
 	for i := 0; i < len(s.Parameters); i++ {
 
 		for k, v := range registry {
@@ -122,7 +126,7 @@ func Kill(stackName string) (err error) {
 */
 
 // recursively create stacks of children and wait
-func (s *Suite) Execute() (err error) {
+func (s *Stack) Execute() (err error) {
 
 	var wg sync.WaitGroup
 
@@ -215,7 +219,7 @@ func (s *Suite) Execute() (err error) {
 
 	for i := 0; i < len(s.Children); i++ {
 		wg.Add(1)
-		go func(s *Suite) {
+		go func(s *Stack) {
 			defer wg.Done()
 			s.Execute()
 		}(&s.Children[i])
