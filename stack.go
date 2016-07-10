@@ -188,7 +188,7 @@ func (s *Stack) Execute() (err error) {
 
 	for i := 0; i < len(s.Tests); i++ {
 		result := assert(events.StackEvents, s.Tests[i])
-		if result == false {
+		if !result {
 			fail = true
 		}
 	}
