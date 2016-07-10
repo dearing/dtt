@@ -300,7 +300,8 @@
 			"checksumSHA1": "iydUphwYqZRq3WhstEdGsbvBAKs=",
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "d77da356e56a7428ad25149ca77381849a6a5232",
-			"revisionTime": "2016-06-15T09:26:46Z"
+			"revisionTime": "2016-06-15T09:26:46Z",
+			"tree": true
 		},
 		{
 			"checksumSHA1": "w/oQQFHCnE+S+2g5D62nfY8aDuQ=",
