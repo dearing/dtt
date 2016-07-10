@@ -16,14 +16,14 @@ import (
 
 var registry = make(map[string]*cloudformation.DescribeStackResourcesOutput)
 
+// Assertion compares computed and expected results by Op
 type Assertion struct {
 	Target string `json:"Target"`
 	Test   string `json:"Test"`
 	Op     string `json:"Op"`
 }
 
-// Test represents a relationship of templates and parameters
-// called in branches, concurrently
+// Stack represents a relationship of templates and parameters called in branches, concurrently
 type Stack struct {
 	File    string
 	Body    []byte
@@ -47,16 +47,19 @@ type Stack struct {
 	Events *cloudformation.DescribeStackEventsOutput
 }
 
+// Read opens and reads the file into a buffer
 func (s *Stack) Read() (err error) {
 	s.Body, err = ioutil.ReadFile(s.File)
 	return
 }
 
+// Create calls for the Stack to create itself in CloudFormation
 func (s *Stack) Create() (err error) {
 	_, err = svc.CreateStack(s.Params)
 	return
 }
 
+// Kill calls for the Stack to be destroyed in CloudFormation
 func (s *Stack) Kill() (err error) {
 	s.Events, err = svc.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
 		StackName: aws.String(s.Name),
@@ -69,7 +72,7 @@ func (s *Stack) Kill() (err error) {
 	return
 }
 
-// iterate over the parameters from the test package
+// Parse iterates over the parameters from the test package
 // and replace for items in the registry
 // TODO: clean up
 func (s *Stack) Parse() (slice []*cloudformation.Parameter) {
@@ -101,7 +104,7 @@ func (s *Stack) Parse() (slice []*cloudformation.Parameter) {
 	return
 }
 
-// recursively create stacks of children and wait
+// Execute recursively create stacks of children and wait
 func (s *Stack) Execute() (err error) {
 
 	var wg sync.WaitGroup
